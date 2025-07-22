@@ -1,4 +1,5 @@
 from dotenv import load_dotenv
+import os
 load_dotenv()
 from llm_api import get_model
 from prompt_api import get_sample
@@ -12,32 +13,23 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langgraph.graph import START, StateGraph
 from typing_extensions import List, TypedDict
 from langchain_community.document_loaders import DirectoryLoader
+from langchain_postgres import PGVector
+
+# See docker command above to launch a postgres instance with pgvector enabled.
+
 print("testing emb")
 emb_model = get_emb_model()
-print("loading dir")
-loader = DirectoryLoader("../../../codes/RSO/crawler/sc/webcrawler/html_storage/rso-co.ir/", glob="**/*.md",show_progress=True)
-docs = loader.load()[:2]
-print(len(docs))
+connection = os.environ.get("PGVECTOR")  # Uses psycopg3!
+collection_name = "RSO_DOC2"
 
-text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200, add_start_index=True,)
-
-all_splits = text_splitter.split_documents(docs)
-print(len(all_splits))
-
-vector_store = InMemoryVectorStore(emb_model)
+vector_store = PGVector(
+    embeddings=emb_model,
+    collection_name=collection_name,
+    connection=connection,
+    use_jsonb=True,
+)
 llm_model = get_model()
 
-
-
-batch_size = 16
-results = []
-
-for i in range(0, len(all_splits), batch_size):
-    batch = all_splits[i:i + batch_size]
-    result = vector_store.add_documents(documents=batch)
-    results += result
-print(len(results))
-print(len(vector_store.store.keys()))
 from langchain_core.prompts import ChatPromptTemplate
 import os
 system_template = ("""
@@ -112,6 +104,7 @@ def generate(state: MessagesState):
 
     # Format into prompt
     docs_content = "\n\n".join(doc.content for doc in tool_messages)
+    print(docs_content)
     system_message_content = (
         "You are an assistant for question-answering tasks. "
         "Use the following pieces of retrieved context to answer "
@@ -176,6 +169,6 @@ for step in graph.stream(
     {"messages": [{"role": "user", "content": input_message}]},
     stream_mode="values",
 ):
-    step["messages"][-1].pretty_print()
+    step["messages"][-1]#.pretty_print()
 # response = graph.invoke({"question": "محصول ESB"})
 # print(response["answer"])
