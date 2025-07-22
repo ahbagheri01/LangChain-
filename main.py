@@ -66,3 +66,5 @@ for chunk, metadata in app3.stream(
 ):
     if isinstance(chunk, AIMessage):  # Filter to just model responses
         print(chunk.content, end="|")
+
+
