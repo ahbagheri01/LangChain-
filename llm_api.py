@@ -1,11 +1,13 @@
-from langchain.llms import OpenAI
+from langchain.chat_models import init_chat_model
+import os
+def get_model():
+    model = init_chat_model(
+        model=os.environ.get("LLM_MODEL_NAME"),  # Can be any name; just consistent with your server
+        model_provider=os.environ.get("LLM_MODEL_PROVIDER"),
+        base_url=os.environ.get("LLM_API_BASE"),  # your local API endpoint
+        openai_api_key=os.environ.get("LLM_API_KEY"),  # dummy if your server doesn’t check it
+        temperature=0.3,
+    )
+    return model
 
-llm = OpenAI(
-    model_name="your-model-name",  # e.g., "gpt-3.5-turbo" or anything you want
-    openai_api_key="your-api-key",  # dummy if not checked on server
-    openai_api_base="http://localhost:8000/v1",  # your local server address
-    temperature=0.7
-)
 
-response = llm("What is LangChain?")
-print(response)
